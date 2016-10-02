@@ -15,8 +15,7 @@ class LinksController extends Controller
      */
     public function __construct()
     {
-        // $this->link = new Link();
-        return '123';
+        $this->link = new Link();
     }
 
     /**
@@ -57,24 +56,17 @@ class LinksController extends Controller
     public function saveLink(LinkCreateRequest $request)
     {
         // Check if the url already exist
-        if ($data = $this->link->getUrl($request->get('url'))) {
-            // Redirect back to home page and display the hashed url
-            return redirect()
-                ->back()
-                ->with('link', $data->hash)
-                ->with('success', 'A shortened URL is available.');
+        if ($data = $this->link->getUrl($request->get('url')))
+        {
+            $hash = $data->hash->first()->hash;
+        }
+        else
+        {
+            // Else create a new record
+            $hash = $this->link->saveUrlAttribute($request->get('url'));
         }
 
-        // Else create a new record
-        $this->link->url = $request->get('url');
-        $this->link->save();
-
-        // Redirect back to home page with the hashed url
-        return redirect()
-            ->back()
-            ->with('link', $this->link->hash)
-            ->with('success', 'URL has been shortened.');
-
-           return response()->json(['responseText' => 'Success!'], 200)
+        // Redirect back to home page with the hashed shrot url
+        return response()->json(['shortUrl' => route('home').'/'.$hash], 200);
     }
 }

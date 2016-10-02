@@ -3,6 +3,7 @@
 namespace App;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Hash;
 
 class Link extends Model
 {
@@ -15,26 +16,35 @@ class Link extends Model
      */
     public function hash()
     {
-        return $this->hasOne('App\Hash','hash_id');
+        return $this->hasOne('App\Hash');
     }
 
     /**
-     * Set the Url and Hash field values
+     * Set the Url and Hash field values and save to tables
+     * Check hash string is exists in table and save long and short url 
      *
      * @param $value
+     * @return $hash return the string
      */
-    public function setUrlAttribute($value)
+    public function saveUrlAttribute($value)
     {
-        $hash = str_random(6);
 
-        // Check if url already exists
-        if ($this->where('url', $value)->exists()) {
-            return '';
+         do
+        {
+            $hash = str_random(6);
+            $hash_code = $this->getHash($hash);
         }
-
-        // Else insert the records into the table
+        while(!empty($hash_code));
+        
         $this->attributes['url']  = $value;
-        $this->attributes['hash'] = $hash;
+        $this->save();
+
+        $hashes = $this->hash ?: new Hash;
+        $hashes->hash = $hash;
+
+        $this->hash()->save($hashes);
+
+        return $hash;
     }
 
     /**
@@ -45,7 +55,7 @@ class Link extends Model
      */
     public function getUrl($url)
     {
-        return $this->where('url', $url)->first();
+        return $this->where('url', $url)->with('hash')->first();
     }
 
     /**
@@ -56,6 +66,8 @@ class Link extends Model
      */
     public function getHash($hash)
     {
-        return $this->where('hash', $hash)->first();
+        return $this->whereHas('hash', function($q) use ($hash){
+                $q->where('hash', $hash);
+            })->first();
     }
 }
